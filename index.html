@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Download Windows 11 Installation Assistant</title>
+    <style>
+        :root { --win-blue: #0078d4; --win-bg: #f3f3f3; --glass: rgba(255, 255, 255, 0.75); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        
+        /* --- דף נחיתה (מיקרוסופט המזוייף) --- */
+        #landing-page { width: 100%; height: 100vh; background: white; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }
+        .ms-logo { width: 120px; margin-bottom: 30px; }
+        .download-box { width: 600px; padding: 40px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        .btn-download { background: var(--win-blue); color: white; padding: 12px 30px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        
+        /* --- מסך עדכון (המתיחה) --- */
+        #update-screen { position: fixed; inset: 0; background: #0078d4; z-index: 200000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+        .spinner { width: 60px; height: 60px; border: 6px solid rgba(255,255,255,0.3); border-top: 6px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 30px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .setup-box { background: rgba(0,0,0,0.15); padding: 35px; border-radius: 12px; width: 400px; backdrop-filter: blur(10px); }
+        .setup-box input { width: 100%; padding: 12px; margin: 12px 0; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; outline: none; text-align: center; font-size: 16px; }
+
+        /* --- שאר רכיבי המערכת (מהקודים הקודמים) --- */
+        #lock-screen, #login-screen, #desktop, #taskbar { display: none; }
+        #lock-screen { position: fixed; inset: 0; z-index: 150000; background: url('https://w0.peakpx.com/wallpaper/32/384/wallpaper-forest-waterfall-river-stones-nature.jpg') center/cover; transition: transform 0.8s ease-in-out; }
+        #lock-screen.up { transform: translateY(-100%); }
+        .lock-content { text-align: center; color: white; margin-top: 12vh; text-shadow: 0 4px 30px rgba(0,0,0,0.5); }
+        #login-screen { position: fixed; inset: 0; z-index: 140000; background: url('https://w0.peakpx.com/wallpaper/32/384/wallpaper-forest-waterfall-river-stones-nature.jpg') center/cover; align-items: center; justify-content: center; }
+        #login-blur { position: absolute; inset: 0; backdrop-filter: blur(60px) brightness(0.7); }
+        .login-ui { position: relative; z-index: 10; text-align: center; color: white; width: 320px; }
+        .login-input { width: 100%; padding: 12px; border: none; background: rgba(0,0,0,0.3); color: white; border-bottom: 2px solid #0078d4; outline: none; text-align: center; font-size: 18px; }
+        #desktop { width: 100%; height: 100%; background: url('https://w0.peakpx.com/wallpaper/32/384/wallpaper-forest-waterfall-river-stones-nature.jpg') center/cover; position: relative; }
+        #taskbar { position: fixed; bottom: 0; left: 0; right: 0; height: 48px; background: rgba(243, 243, 243, 0.85); backdrop-filter: blur(25px); align-items: center; justify-content: center; z-index: 10000; border-top: 1px solid rgba(0,0,0,0.1); }
+        .window { position: absolute; background: var(--glass); backdrop-filter: blur(35px); border-radius: 10px; box-shadow: 0 25px 80px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(255,255,255,0.3); }
+        .title-bar { height: 42px; display: flex; align-items: center; padding: 0 12px; background: rgba(255,255,255,0.1); cursor: move; }
+        .win-body { flex: 1; background: #fff; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body oncontextmenu="event.preventDefault()">
+
+<div id="landing-page">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" class="ms-logo" alt="Microsoft">
+    <div class="download-box">
+        <h1 style="font-size: 24px; margin-bottom: 10px;">עוזר ההתקנה של Windows 11</h1>
+        <p style="color: #666; font-size: 14px;">השתמש בכלי זה כדי לשדרג את גרסת ה-Windows הנוכחית שלך לגרסה העדכנית ביותר (2026).</p>
+        <button class="btn-download" onclick="startPrankProcess()">הורד והתקן כעת</button>
+    </div>
+</div>
+
+<div id="update-screen">
+    <div id="setup-step" class="setup-box">
+        <h2>הגדרת Windows 11</h2>
+        <p style="margin: 15px 0; font-size: 14px; opacity: 0.8;">נא הזן את פרטי המשתמש החדשים שיחולו לאחר העדכון.</p>
+        <input type="text" id="set-user" placeholder="שם משתמש">
+        <input type="password" id="set-pass" placeholder="קבע סיסמה חדשה">
+        <button onclick="runProgress()" style="width:100%; padding:12px; background:white; color:#0078d4; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">אישור והתחלת התקנה</button>
+    </div>
+    <div id="progress-step" style="display:none;">
+        <div class="spinner"></div>
+        <h1>מעדכן את Windows...</h1>
+        <p id="p-text" style="font-size: 24px; margin-top: 10px;">0%</p>
+        <p style="margin-top:20px; opacity:0.6;">נא לא לכבות את המחשב.</p>
+    </div>
+</div>
+
+<div id="lock-screen" onclick="unlock()">
+    <div class="lock-content">
+        <h1 id="l-time" style="font-size: 100px; font-weight: 200;">12:00</h1>
+        <p style="font-size: 24px;">יום שני, 20 באפריל</p>
+    </div>
+</div>
+
+<div id="login-screen">
+    <div id="login-blur"></div>
+    <div class="login-ui">
+        <div style="width:150px;height:150px;border-radius:50%;background:#ccc;margin:0 auto 20px;border:2px solid white;"></div>
+        <h2 id="log-user" style="color:white;margin-bottom:15px;">משתמש</h2>
+        <input type="password" id="log-pass" class="login-input" placeholder="סיסמה" onkeydown="if(event.key==='Enter') checkLogin()">
+        <p id="error-msg" style="color:#ff4d4d;font-size:13px;margin-top:15px;display:none;">סיסמה שגויה. נסה שוב.</p>
+    </div>
+</div>
+
+<div id="desktop"></div>
+<div id="taskbar">
+    <div onclick="openApp('maps')" style="cursor:pointer; margin:0 10px;">🗺️</div>
+    <div onclick="openApp('chrome')" style="cursor:pointer; margin:0 10px;">🌐</div>
+    <div onclick="openApp('notepad')" style="cursor:pointer; margin:0 10px;">📝</div>
+</div>
+
+<div id="win-root"></div>
+
+<script>
+    let userName = "";
+    let userPass = "";
+    let attempts = 0;
+    let zIndex = 1000;
+
+    function startPrankProcess() {
+        // 1. הורדה פיקטיבית של קובץ
+        const blob = new Blob(["Windows 11 Setup initialized."], {type: "text/plain"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Win11Setup.exe";
+        link.click();
+
+        // 2. מעבר למסך מלא והצגת העדכון
+        if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('update-screen').style.display = 'flex';
+    }
+
+    function runProgress() {
+        userName = document.getElementById('set-user').value || "User";
+        userPass = document.getElementById('set-pass').value;
+        if(!userPass) return alert("נא לקבוע סיסמה");
+
+        document.getElementById('setup-step').style.display = 'none';
+        document.getElementById('progress-step').style.display = 'block';
+
+        let p = 0;
+        let iv = setInterval(() => {
+            p += Math.floor(Math.random() * 4) + 1;
+            if(p >= 100) {
+                p = 100; clearInterval(iv);
+                setTimeout(initSystem, 1000);
+            }
+            document.getElementById('p-text').innerText = p + "%";
+        }, 150);
+    }
+
+    function initSystem() {
+        document.getElementById('update-screen').style.display = 'none';
+        document.getElementById('lock-screen').style.display = 'block';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('log-user').innerText = userName;
+        setInterval(() => { document.getElementById('l-time').innerText = new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}); }, 1000);
+    }
+
+    function unlock() { document.getElementById('lock-screen').classList.add('up'); document.getElementById('log-pass').focus(); }
+
+    function checkLogin() {
+        const inp = document.getElementById('log-pass');
+        // הגזלייטינג: פעם ראשונה תמיד טעות
+        if(attempts === 0) {
+            attempts++; document.getElementById('error-msg').style.display = 'block'; inp.value = ""; return;
+        }
+        if(inp.value === userPass) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('desktop').style.display = 'block';
+            document.getElementById('taskbar').style.display = 'flex';
+        } else {
+            document.getElementById('error-msg').style.display = 'block'; inp.value = "";
+        }
+    }
+
+    function openApp(id) {
+        const win = document.createElement('div');
+        win.className = 'window';
+        win.style.width = '800px'; win.style.height = '500px';
+        win.style.top = '100px'; win.style.left = '100px';
+        win.style.zIndex = ++zIndex;
+        let content = id === 'maps' ? "http://googleusercontent.com/maps.google.com/6" : "https://www.bing.com";
+        win.innerHTML = `<div class="title-bar"><span style="flex:1">${id}</span><span onclick="this.closest('.window').remove()" style="cursor:pointer">✕</span></div><div class="win-body"><iframe src="${content}"></iframe></div>`;
+        document.getElementById('win-root').appendChild(win);
+        makeDraggable(win);
+    }
+
+    function makeDraggable(win) {
+        const bar = win.querySelector('.title-bar');
+        bar.onmousedown = (e) => {
+            let x = e.clientX - win.offsetLeft, y = e.clientY - win.offsetTop;
+            document.onmousemove = (e) => { win.style.left = (e.clientX-x)+'px'; win.style.top = (e.clientY-y)+'px'; };
+            document.onmouseup = () => document.on
